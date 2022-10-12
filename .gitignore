@@ -3,3 +3,5 @@
 /lib/*
 /out/*
 /target/*
+/target/classes/
+/target/maven-archiver/
