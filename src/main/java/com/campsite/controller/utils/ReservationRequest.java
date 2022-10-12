@@ -17,16 +17,16 @@ public class ReservationRequest {
     @NotNull(groups = OnCreate.class, message = "Last name is required.")
     private String lastName;
 
-    @Email(groups = {OnCreate.class,OnUpdate.class}, message = "Email is format is invalid.")
+    @Email(groups = {OnCreate.class, OnUpdate.class}, message = "Email is format is invalid.")
     @NotNull(groups = OnCreate.class, message = "Email is required.")
     private String email;
 
-    @Future(groups = {OnCreate.class,OnUpdate.class}, message = "The checkin date must be in the future.")
+    @Future(groups = {OnCreate.class, OnUpdate.class}, message = "The checkin date must be in the future.")
     @DateTimeFormat(pattern = "yyyy-MM-dd")
     @NotNull(groups = OnCreate.class, message = "Checkin date is required.")
     private LocalDate checkinDate;
 
-    @Future(groups = {OnCreate.class,OnUpdate.class}, message = "The checkout date must be in the future.")
+    @Future(groups = {OnCreate.class, OnUpdate.class}, message = "The checkout date must be in the future.")
     @DateTimeFormat(pattern = "yyyy-MM-dd")
     @NotNull(groups = OnCreate.class, message = "Checkout date is required.")
     private LocalDate checkoutDate;

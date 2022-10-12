@@ -16,7 +16,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
-import javax.validation.constraints.Min;
 import javax.validation.groups.Default;
 import java.time.LocalDate;
 import java.util.List;
@@ -46,7 +45,7 @@ public class ReservationController {
      */
     @GetMapping("/availabilities")
     public List<LocalDate> checkAvailability(@RequestParam(value = "startDate", required = false) @DateTimeFormat(pattern = "yyyy-MM-dd")
-                                              LocalDate startDate, @DateTimeFormat(pattern = "yyyy-MM-dd") @RequestParam(value = "endDate", required = false) LocalDate endDate) {
+                                             LocalDate startDate, @DateTimeFormat(pattern = "yyyy-MM-dd") @RequestParam(value = "endDate", required = false) LocalDate endDate) {
         // Find all available dates for the given date range
         List<LocalDate> availableDates = reservationService.findAvailableDates(startDate, endDate);
         logger.info("Available dates found between the period of " + startDate + " and " + endDate + " are: " + availableDates.toString());
@@ -54,7 +53,7 @@ public class ReservationController {
     }
 
     /**
-     * Exposing this method solely for the purpose of this challenge in order to all reservations and versions.
+     * **Exposing this method solely for the purpose of this challenge in order to all reservations entities and their versions.**
      * Retrieve all the reservations entities
      *
      * @return the list of reservations
@@ -84,7 +83,7 @@ public class ReservationController {
 
 
     /**
-     * Create reservation with the given information.
+     * Creates a reservation with the given information.
      *
      * @param reservationRequest the requested reservation information
      * @return the unique identifier for the reservation
@@ -100,7 +99,7 @@ public class ReservationController {
 
 
     /**
-     *  Update an existing reservation with the given information.
+     * Updates an existing reservation with the given information.
      *
      * @param reservationRequest the request reservation information
      * @return the unique identifier for the reservation
@@ -115,25 +114,18 @@ public class ReservationController {
     }
 
     /**
+     * Cancels an existing reservation.
      *
      * @param id the request reservation ID
      * @return the unique identifier for the reservation
      */
     @DeleteMapping("/reservation/{id}")
-    ResponseEntity<String> cancelReservation(@PathVariable @Min(1) String id) {
-
-        // 1. Fetch reservation
-        Reservation existingReservation = reservationService.retrieveReservation(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Reservation with this ID: " + id + " does not exist."));
-        logger.info("Found reservation with ID : " + id);
-
-        // 2. Cancel reservation
-        reservationService.cancelReservation(existingReservation.getExternalIdentifier());
+    ResponseEntity<String> cancelReservation(@PathVariable String id) {
+        // Cancel reservation
+        reservationService.cancelReservation(id);
         logger.info("Successfully cancelled reservation with ID : " + id);
         return ResponseEntity.ok("Successfully cancelled reservation with ID : " + id);
     }
-
-
 
 
 }

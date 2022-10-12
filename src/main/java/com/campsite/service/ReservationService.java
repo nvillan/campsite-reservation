@@ -11,9 +11,14 @@ import java.util.Optional;
 
 public interface ReservationService {
     List<LocalDate> findAvailableDates(LocalDate startDate, LocalDate endDate);
+
     List<ReservationEntity> retrieveAllReservations();
+
     Optional<Reservation> retrieveReservation(String id);
+
     String createReservation(ReservationRequest reservationRequest);
+
     Reservation updateReservation(String id, ReservationRequest reservationRequested);
+
     void cancelReservation(String id);
 }

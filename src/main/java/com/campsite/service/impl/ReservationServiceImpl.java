@@ -25,7 +25,6 @@ import java.time.temporal.ChronoUnit;
 import java.util.*;
 
 @Service
-@Transactional
 public class ReservationServiceImpl implements ReservationService {
 
     private static final Logger logger = LogManager.getLogger(ReservationServiceImpl.class);
@@ -37,6 +36,7 @@ public class ReservationServiceImpl implements ReservationService {
     final DefaultMapperFactory mapperFactory = new DefaultMapperFactory.Builder().build();
 
     final BoundMapperFacade<ReservationEntity, Reservation> reservationEntityBoundMapper = mapperFactory.getMapperFacade(ReservationEntity.class, Reservation.class);
+
     public List<LocalDate> findAvailableDates(LocalDate startDate, LocalDate endDate) {
         startDate = ObjectUtils.firstNonNull(startDate, LocalDate.now().plusDays(1));
         endDate = ObjectUtils.firstNonNull(endDate, LocalDate.now().plusMonths(1));
@@ -68,6 +68,8 @@ public class ReservationServiceImpl implements ReservationService {
         return Optional.ofNullable(reservationEntityBoundMapper.map(reservationRepository.findActiveReservationByExternalIdentifier(id)));
     }
 
+
+    @Transactional
     public String createReservation(ReservationRequest reservationRequest) {
         // 1. Validate date range for reservation
         validateDatesForReservation(reservationRequest.getCheckinDate(), reservationRequest.getCheckoutDate());
@@ -77,13 +79,15 @@ public class ReservationServiceImpl implements ReservationService {
         return reservationRepository.save(reservationEntity).getExternalIdentifier();
     }
 
-    public Reservation updateReservation(String id,ReservationRequest reservationRequested) {
+
+    @Transactional
+    public Reservation updateReservation(String id, ReservationRequest reservationRequested) {
 
         // 1. Fetch reservation
         ReservationEntity existingReservation = reservationRepository.findActiveReservationByExternalIdentifier(id);
-         if(existingReservation == null) {
-             new ResourceNotFoundException("Reservation with ID: " + id + " does not exist.");
-         }
+        if (existingReservation == null) {
+            throw new ResourceNotFoundException("Reservation with ID: " + id + " does not exist.");
+        }
 
         logger.info("Found reservation with ID : " + id);
 
@@ -99,8 +103,17 @@ public class ReservationServiceImpl implements ReservationService {
         return reservationEntityBoundMapper.map(reservationRepository.save(existingReservation));
     }
 
-    public void cancelReservation(String reservationExternalIdentifier) {
-        reservationRepository.deleteReservation(reservationExternalIdentifier);
+
+    @Transactional
+    public void cancelReservation(String id) {
+        // 1. Fetch reservation
+        ReservationEntity existingReservation = reservationRepository.findActiveReservationByExternalIdentifier(id);
+        if (existingReservation == null) {
+            throw new ResourceNotFoundException("Reservation with ID: " + id + " does not exist.");
+        }
+        logger.info("Found reservation with ID : " + id);
+        existingReservation.setStatus(Status.CANCELLED.name());
+        reservationRepository.save(existingReservation);
     }
 
     private boolean isSlotAvailable(LocalDate startDate, LocalDate endDate) {
@@ -120,7 +133,7 @@ public class ReservationServiceImpl implements ReservationService {
         return reservationEntity;
     }
 
-    private void updateExistingReservation (ReservationEntity existingReservation, ReservationRequest reservationRequested) {
+    private void updateExistingReservation(ReservationEntity existingReservation, ReservationRequest reservationRequested) {
         existingReservation.setFirstName(ObjectUtils.firstNonNull(reservationRequested.getFirstName(), existingReservation.getFirstName()));
         existingReservation.setLastName(ObjectUtils.firstNonNull(reservationRequested.getLastName(), existingReservation.getLastName()));
         existingReservation.setEmail(ObjectUtils.firstNonNull(reservationRequested.getEmail(), existingReservation.getEmail()));
@@ -167,8 +180,7 @@ public class ReservationServiceImpl implements ReservationService {
 
     private boolean isPeriodValid(LocalDate startDate, LocalDate endDate) {
         LocalDate todayDate = LocalDate.now();
-        return startDate.isAfter(todayDate) && endDate.isAfter(startDate) && startDate.isBefore(todayDate.plusDays(1).plusMonths(1))
-                && endDate.isBefore(todayDate.plusDays(4).plusMonths(1));
+        return startDate.isAfter(todayDate) && endDate.isAfter(startDate) && startDate.isBefore(todayDate.plusDays(1).plusMonths(1)) && endDate.isBefore(todayDate.plusDays(4).plusMonths(1));
 
     }
 }

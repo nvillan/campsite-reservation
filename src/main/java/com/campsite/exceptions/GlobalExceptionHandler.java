@@ -25,35 +25,31 @@ public class GlobalExceptionHandler {
 
     @ResponseBody
     @ExceptionHandler(InvalidParameterException.class)
-    @ResponseStatus (HttpStatus.BAD_REQUEST)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
     public String handleInvalidParameterException(InvalidParameterException ex) {
         return ex.getMessage();
     }
 
     @ResponseBody
     @ExceptionHandler(NoAvailabilityException.class)
-    @ResponseStatus (HttpStatus.BAD_REQUEST)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
     public String handleNoAvailabilityException(NoAvailabilityException ex) {
         return ex.getMessage();
     }
 
     @ResponseBody
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    @ResponseStatus (HttpStatus.BAD_REQUEST)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
     public List<String> handleMethodArgumentNotValid(MethodArgumentNotValidException ex) {
-        List<String> errors = ex.getBindingResult()
-                .getFieldErrors()
-                .stream()
-                .map(DefaultMessageSourceResolvable::getDefaultMessage)
-                .collect(Collectors.toList());
+        List<String> errors = ex.getBindingResult().getFieldErrors().stream().map(DefaultMessageSourceResolvable::getDefaultMessage).collect(Collectors.toList());
         return errors;
     }
 
     @ResponseBody
     @ExceptionHandler(DateTimeParseException.class)
-    @ResponseStatus (HttpStatus.BAD_REQUEST)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
     public String handleDateTimeParseException(DateTimeParseException ex) {
-        return new StringBuffer ("Please use format YYYY-MM-DD for date parameter.\n").append(ex.getLocalizedMessage()).toString();
+        return new StringBuffer("Please use format YYYY-MM-DD for date parameter.\n").append(ex.getLocalizedMessage()).toString();
     }
 //
 //    @ResponseBody

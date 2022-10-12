@@ -1,7 +1,8 @@
 package com.campsite.persistence.entity;
 
-import lombok.*;
-import org.hibernate.annotations.GenericGenerator;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
@@ -9,7 +10,6 @@ import javax.persistence.*;
 import java.io.Serializable;
 import java.time.LocalDate;
 import java.util.Date;
-import java.util.UUID;
 
 @Entity
 @Data

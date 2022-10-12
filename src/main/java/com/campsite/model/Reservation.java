@@ -5,27 +5,34 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-import java.sql.Date;
 import java.time.LocalDate;
 
 @AllArgsConstructor
 @NoArgsConstructor
 public class Reservation {
-    @Setter @Getter
+    @Setter
+    @Getter
     private String firstName;
-    @Setter @Getter
+    @Setter
+    @Getter
     private String lastName;
-    @Setter @Getter
+    @Setter
+    @Getter
     private String email;
-    @Setter @Getter
+    @Setter
+    @Getter
     private LocalDate checkinDate;
-    @Setter @Getter
+    @Setter
+    @Getter
     private LocalDate checkoutDate;
-    @Getter @Setter
+    @Getter
+    @Setter
     private Status status;
-    @Setter @Getter
+    @Setter
+    @Getter
     private String externalIdentifier;
-    @Getter @Setter
+    @Getter
+    @Setter
     private int numOfGuests;
 
 }
