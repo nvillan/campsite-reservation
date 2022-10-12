@@ -1,7 +1,6 @@
-/.idea/*
-/.jpb/*
-/lib/*
 /out/*
-/target/*
+/target/
 /target/classes/
 /target/maven-archiver/
+/.jpb/
+/lib/
