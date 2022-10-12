@@ -1,5 +1,5 @@
-/.idea/
-/.jpb/
-/lib/
-/out/
-/target/
+/.idea/*
+/.jpb/*
+/lib/*
+/out/*
+/target/*
