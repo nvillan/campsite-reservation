@@ -13,6 +13,7 @@ public class ExternalIdentifierGeneratorImpl implements ExternalIdentifierGenera
     public ExternalIdentifierGeneratorImpl() {
         try {
             sr = SecureRandom.getInstance("SHA1PRNG");
+            sr.generateSeed(1000);
         } catch (NoSuchAlgorithmException e) {
             throw new RuntimeException(e);
         }

@@ -54,12 +54,13 @@ public class ReservationController {
     }
 
     /**
-     * Retrieve all the reservations
+     * Exposing this method solely for the purpose of this challenge in order to all reservations and versions.
+     * Retrieve all the reservations entities
      *
      * @return the list of reservations
      */
     @GetMapping("/reservation/")
-    public List<Reservation> retrieveAllReservations() {
+    public List<ReservationEntity> retrieveAllReservations() {
         // Fetch all the reservations
         return reservationService.retrieveAllReservations();
     }
@@ -107,14 +108,8 @@ public class ReservationController {
     @PatchMapping("/reservation/{id}")
     public Reservation updateReservation(@PathVariable String id, @Validated({OnUpdate.class, Default.class}) @RequestBody ReservationRequest reservationRequest) {
 
-        // 1. Fetch reservation
-        Reservation existingReservation = reservationService.retrieveReservation(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Reservation with ID: " + id + " does not exist."));
-
-        logger.info("Found reservation with ID : " + id);
-
-        // 2. Update reservation
-        Reservation updatedReservation = reservationService.updateReservation(existingReservation, reservationRequest);
+        // 1. Update reservation
+        Reservation updatedReservation = reservationService.updateReservation(id, reservationRequest);
         logger.info("Successfully updated reservation with ID : " + updatedReservation.getExternalIdentifier());
         return updatedReservation;
     }

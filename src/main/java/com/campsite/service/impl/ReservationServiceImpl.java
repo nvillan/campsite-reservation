@@ -5,6 +5,7 @@ import com.campsite.common.ExternalIdentifierGeneratorImpl;
 import com.campsite.controller.utils.ReservationRequest;
 import com.campsite.exceptions.InvalidParameterException;
 import com.campsite.exceptions.NoAvailabilityException;
+import com.campsite.exceptions.ResourceNotFoundException;
 import com.campsite.model.Reservation;
 import com.campsite.model.Status;
 import com.campsite.persistence.entity.ReservationEntity;
@@ -24,6 +25,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.*;
 
 @Service
+@Transactional
 public class ReservationServiceImpl implements ReservationService {
 
     private static final Logger logger = LogManager.getLogger(ReservationServiceImpl.class);
@@ -33,9 +35,8 @@ public class ReservationServiceImpl implements ReservationService {
     private ReservationRepository reservationRepository;
 
     final DefaultMapperFactory mapperFactory = new DefaultMapperFactory.Builder().build();
-    final BoundMapperFacade<ReservationEntity, Reservation> reservationEntityBoundMapper = mapperFactory.getMapperFacade(ReservationEntity.class, Reservation.class);
-    final BoundMapperFacade<ReservationRequest, ReservationEntity> reservationRequestBoundMapper = mapperFactory.getMapperFacade(ReservationRequest.class, ReservationEntity.class);
 
+    final BoundMapperFacade<ReservationEntity, Reservation> reservationEntityBoundMapper = mapperFactory.getMapperFacade(ReservationEntity.class, Reservation.class);
     public List<LocalDate> findAvailableDates(LocalDate startDate, LocalDate endDate) {
         startDate = ObjectUtils.firstNonNull(startDate, LocalDate.now().plusDays(1));
         endDate = ObjectUtils.firstNonNull(endDate, LocalDate.now().plusMonths(1));
@@ -51,7 +52,7 @@ public class ReservationServiceImpl implements ReservationService {
         List<LocalDate> availableDates = new ArrayList<>();
         LocalDate tempStartDate = startDate;
         while (tempStartDate.isBefore(endDate.plusDays(1))) {
-            if (!busyDates.containsKey(tempStartDate)) {
+            if (busyDates.isEmpty() || !busyDates.containsKey(tempStartDate)) {
                 availableDates.add(tempStartDate);
             }
             tempStartDate = tempStartDate.plusDays(1);
@@ -59,56 +60,45 @@ public class ReservationServiceImpl implements ReservationService {
         return availableDates;
     }
 
-    public List<Reservation> retrieveAllReservations() {
-        List<Reservation> reservations = new ArrayList<>();
-        reservationRepository.findAll().forEach(
-                reservationEntity -> {
-                    reservations.add(reservationEntityBoundMapper.map(reservationEntity));
-
-                }
-        );
-        return reservations;
+    public List<ReservationEntity> retrieveAllReservations() {
+        return reservationRepository.findAll();
     }
 
     public Optional<Reservation> retrieveReservation(String id) {
-        Optional<ReservationEntity> reservationEntityOpt = reservationRepository.findActiveReservationByExternalIdentifier(id);
-        if (reservationEntityOpt.isPresent()) {
-            Optional.of(reservationEntityBoundMapper.map(reservationEntityOpt.get()));
-        }
-        return Optional.empty();
+        return Optional.ofNullable(reservationEntityBoundMapper.map(reservationRepository.findActiveReservationByExternalIdentifier(id)));
     }
 
-    @Transactional
     public String createReservation(ReservationRequest reservationRequest) {
         // 1. Validate date range for reservation
         validateDatesForReservation(reservationRequest.getCheckinDate(), reservationRequest.getCheckoutDate());
 
         //2. Create reservation entity
         ReservationEntity reservationEntity = populateReservationEntity(reservationRequest);
-        return reservationRepository.saveAndFlush(reservationEntity).getExternalIdentifier();
-//        ReservationEntity reservationEntity = reservationRequestBoundMapper.map(reservation);
-//        return reservationBoundMapper.mapReverse(reservationRepository.saveAndFlush(reservationEntity));
+        return reservationRepository.save(reservationEntity).getExternalIdentifier();
     }
 
-    @Transactional
-    public Reservation updateReservation(Reservation existingReservation, ReservationRequest reservationRequested) {
-        // 1. Validate date range for reservation if it applies
+    public Reservation updateReservation(String id,ReservationRequest reservationRequested) {
+
+        // 1. Fetch reservation
+        ReservationEntity existingReservation = reservationRepository.findActiveReservationByExternalIdentifier(id);
+         if(existingReservation == null) {
+             new ResourceNotFoundException("Reservation with ID: " + id + " does not exist.");
+         }
+
+        logger.info("Found reservation with ID : " + id);
+
+        // 2. Validate date range for reservation if it applies
         if (reservationRequested.getCheckinDate() != null || reservationRequested.getCheckoutDate() != null) {
             LocalDate newCheckinDate = ObjectUtils.firstNonNull(reservationRequested.getCheckinDate(), existingReservation.getCheckinDate());
             LocalDate newCheckoutDate = ObjectUtils.firstNonNull(reservationRequested.getCheckoutDate(), existingReservation.getCheckoutDate());
             validateDatesForReservation(newCheckinDate, newCheckoutDate);
         }
 
-        // 2. Validate date range for reservation if it applies
-        ReservationEntity re = updateReservationEntity(existingReservation, reservationRequested);
-        reservationRepository.saveAndFlush(re);
-
-        return null;
-        //ReservationEntity entity = reservationBoundMapper.map(existingReservation);
-//       return reservationBoundMapper.mapReverse(entity);
+        // 3. Update reservation info
+        updateExistingReservation(existingReservation, reservationRequested);
+        return reservationEntityBoundMapper.map(reservationRepository.save(existingReservation));
     }
 
-    @Transactional
     public void cancelReservation(String reservationExternalIdentifier) {
         reservationRepository.deleteReservation(reservationExternalIdentifier);
     }
@@ -130,15 +120,13 @@ public class ReservationServiceImpl implements ReservationService {
         return reservationEntity;
     }
 
-    private ReservationEntity updateReservationEntity(Reservation existingReservation, ReservationRequest reservationRequested) {
+    private void updateExistingReservation (ReservationEntity existingReservation, ReservationRequest reservationRequested) {
         existingReservation.setFirstName(ObjectUtils.firstNonNull(reservationRequested.getFirstName(), existingReservation.getFirstName()));
         existingReservation.setLastName(ObjectUtils.firstNonNull(reservationRequested.getLastName(), existingReservation.getLastName()));
         existingReservation.setEmail(ObjectUtils.firstNonNull(reservationRequested.getEmail(), existingReservation.getEmail()));
         existingReservation.setNumOfGuests(reservationRequested.getNumOfGuests() == 0 ? DEFAULT_NUM_OF_GUESTS : reservationRequested.getNumOfGuests());
         existingReservation.setCheckinDate(ObjectUtils.firstNonNull(reservationRequested.getCheckinDate(), existingReservation.getCheckinDate()));
         existingReservation.setCheckoutDate(ObjectUtils.firstNonNull(reservationRequested.getCheckoutDate(), existingReservation.getCheckoutDate()));
-
-        return null;
     }
 
 
@@ -156,18 +144,8 @@ public class ReservationServiceImpl implements ReservationService {
         return reservedDates;
     }
 
-    //
-//    private static AtomicLong idCounter = new AtomicLong();
-//    private static final String prefix = "RSV";
-//
-//    public static String createID()
-//    {
-//        StringBuilder sb = new StringBuilder();
-//        SecureRandom aw
-//        return sb.append(prefix).append(valueOf(idCounter.getAndIncrement())).append()
-//    }
     private void validateDatesForReservation(LocalDate newCheckinDate, LocalDate newCheckoutDate) {
-        // 2. Check if dates are valid and respect maximum duration.
+        // 1. Check if dates are valid and respect maximum duration.
         if (!isDateRangeValidForReservation(newCheckinDate, newCheckoutDate)) {
             throw new InvalidParameterException("The date range entered is incorrect.");
         }

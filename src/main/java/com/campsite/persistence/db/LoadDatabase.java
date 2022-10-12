@@ -34,6 +34,7 @@ public class LoadDatabase {
                 reservation2.setCheckinDate(LocalDate.now().plusDays(1));
                 reservation2.setCheckoutDate(LocalDate.now().plusDays(2));
 
+
                 log.info("Preloading " + repository.save(reservation1));
                 log.info("Preloading " + repository.save(reservation2));
             };

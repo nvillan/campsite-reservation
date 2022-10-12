@@ -14,7 +14,7 @@ import java.util.Optional;
 public interface ReservationRepository extends JpaRepository<ReservationEntity, Long> {
 
     @Query("select r from ReservationEntity r where external_identifier = ?1 and status ='ACTIVE'")
-    Optional<ReservationEntity> findActiveReservationByExternalIdentifier(String id);
+    ReservationEntity findActiveReservationByExternalIdentifier(String id);
 
     @Modifying
     @Query("update ReservationEntity set status ='CANCELLED' where external_identifier = ?1")
@@ -23,10 +23,4 @@ public interface ReservationRepository extends JpaRepository<ReservationEntity, 
     @Query("select r from ReservationEntity r where status ='ACTIVE' and ((checkinDate between ?1 and ?2) or (checkoutDate between ?1 and ?2)) order by  checkinDate")
    //         "(checkinDate > ?1) and (checkoutDate < ?2  or checkoutDate > ?2");
     List<ReservationEntity> findReservationsForGivenPeriod(LocalDate startDate, LocalDate endDate);
-
-
-//
-//    Optional<ReservationEntity> findByExternalId(Long uuid);
-////
-//    List<Date> findAvailableDates(Long uuid);
 }
