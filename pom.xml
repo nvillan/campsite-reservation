@@ -119,7 +119,6 @@
                     <archive>
                         <manifest>
                             <addClasspath>true</addClasspath>
-                            <classpathPrefix>lib/</classpathPrefix>
                             <mainClass>com.campsite.CampsiteReservationApplication</mainClass>
                         </manifest>
                     </archive>
