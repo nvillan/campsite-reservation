@@ -1,5 +1,0 @@
-<html>
-    <body>
-    <h2>Welcome to Campsite Reservation service!</h2>
-    </body>
-</html>
