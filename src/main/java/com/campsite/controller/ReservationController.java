@@ -3,6 +3,7 @@ package com.campsite.controller;
 import com.campsite.controller.utils.OnCreate;
 import com.campsite.controller.utils.OnUpdate;
 import com.campsite.controller.utils.ReservationRequest;
+import com.campsite.exceptions.InvalidParameterException;
 import com.campsite.exceptions.ResourceNotFoundException;
 import com.campsite.model.Reservation;
 import com.campsite.persistence.entity.ReservationEntity;
@@ -42,6 +43,7 @@ public class ReservationController {
      * @param startDate the start date for availability check
      * @param endDate   the end date for availability check
      * @return the list of available dates
+     * @throws InvalidParameterException
      */
     @GetMapping("/availabilities")
     public List<LocalDate> checkAvailability(@RequestParam(value = "startDate", required = false) @DateTimeFormat(pattern = "yyyy-MM-dd")
@@ -53,7 +55,7 @@ public class ReservationController {
     }
 
     /**
-     * **Exposing this method solely for the purpose of this challenge in order to all reservations entities and their versions.**
+     * **Exposing this method SOLELY for the purpose of this challenge in order to all reservations entities and their versions.**
      * Retrieve all the reservations entities
      *
      * @return the list of reservations
@@ -107,7 +109,7 @@ public class ReservationController {
     @PatchMapping("/reservation/{id}")
     public Reservation updateReservation(@PathVariable String id, @Validated({OnUpdate.class, Default.class}) @RequestBody ReservationRequest reservationRequest) {
 
-        // 1. Update reservation
+        // Update reservation
         Reservation updatedReservation = reservationService.updateReservation(id, reservationRequest);
         logger.info("Successfully updated reservation with ID : " + updatedReservation.getExternalIdentifier());
         return updatedReservation;

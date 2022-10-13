@@ -1,8 +1,11 @@
 package com.campsite.exceptions;
 
-
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.hibernate.StaleStateException;
 import org.springframework.context.support.DefaultMessageSourceResolvable;
 import org.springframework.http.HttpStatus;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -15,11 +18,12 @@ import java.util.stream.Collectors;
 
 @ControllerAdvice
 public class GlobalExceptionHandler {
-
+    private static final Logger logger  = LogManager.getLogger(GlobalExceptionHandler.class);
     @ResponseBody
     @ExceptionHandler(ResourceNotFoundException.class)
     @ResponseStatus(HttpStatus.NOT_FOUND)
     public String handleResourceNotFoundException(ResourceNotFoundException ex) {
+        logger.error(ex.getMessage());
         return ex.getMessage();
     }
 
@@ -27,13 +31,15 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(InvalidParameterException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public String handleInvalidParameterException(InvalidParameterException ex) {
+        logger.error(ex.getMessage());
         return ex.getMessage();
     }
 
     @ResponseBody
     @ExceptionHandler(NoAvailabilityException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
-    public String handleNoAvailabilityException(NoAvailabilityException ex) {
+    public String handleNoAvailabilityException(NoAvailabilityException ex){
+        logger.error(ex.getMessage());
         return ex.getMessage();
     }
 
@@ -42,6 +48,7 @@ public class GlobalExceptionHandler {
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public List<String> handleMethodArgumentNotValid(MethodArgumentNotValidException ex) {
         List<String> errors = ex.getBindingResult().getFieldErrors().stream().map(DefaultMessageSourceResolvable::getDefaultMessage).collect(Collectors.toList());
+        logger.error(ex.getMessage());
         return errors;
     }
 
@@ -49,13 +56,16 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(DateTimeParseException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public String handleDateTimeParseException(DateTimeParseException ex) {
-        return new StringBuffer("Please use format YYYY-MM-DD for date parameter.\n").append(ex.getLocalizedMessage()).toString();
+        String msg = new StringBuffer("Please use format YYYY-MM-DD for date parameter.\n").append(ex.getLocalizedMessage()).toString();
+        logger.error(msg);
+        return msg;
     }
-//
-//    @ResponseBody
-//    @ExceptionHandler(Exception.class)
-//    @ResponseStatus (HttpStatus.BAD_REQUEST)
-//    public String handleMethodArgumentNotValidException(MethodArgumentNotValidException ex){
-//        return ex.getMessage();
-//    }
+    @ResponseBody
+    @ExceptionHandler({ObjectOptimisticLockingFailureException.class, StaleStateException.class})
+    @ResponseStatus(HttpStatus.CONFLICT)
+    public String handleObjectOptimisticLockingFailureException (ObjectOptimisticLockingFailureException ex) {
+        String msg = new StringBuffer("The reservation has already been updated in a concurrent transaction. Please try again.").toString();
+        logger.error(msg);
+        return msg;
+    }
 }

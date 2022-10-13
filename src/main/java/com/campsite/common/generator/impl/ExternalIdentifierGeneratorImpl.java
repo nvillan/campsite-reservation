@@ -1,4 +1,6 @@
-package com.campsite.common;
+package com.campsite.common.generator.impl;
+
+import com.campsite.common.generator.ExternalIdentifierGenerator;
 
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
