@@ -9,9 +9,11 @@ Git Hub Repository: https://github.com/nvillan/campsite-reservation.git
 Url to access rest service: https://campsite-reservation-rest-serv.herokuapp.com/
 
 
-##API Documentation
+## API Documentation
 
 https://documenter.getpostman.com/view/390477/2s83zpL1ap
+
+Path for APIs: https://campsite-reservation-rest-serv.herokuapp.com/api/v1/reservation/
 
 
 
