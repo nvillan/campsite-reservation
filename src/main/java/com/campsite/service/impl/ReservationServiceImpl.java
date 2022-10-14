@@ -18,6 +18,8 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Isolation;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
@@ -37,6 +39,7 @@ public class ReservationServiceImpl implements ReservationService {
     @Autowired
     private ReservationRepository reservationRepository;
 
+    @Transactional(readOnly = true)
     public List<LocalDate> findAvailableDates(LocalDate startDate, LocalDate endDate) {
         startDate = ObjectUtils.firstNonNull(startDate, LocalDate.now().plusDays(1));
         endDate = ObjectUtils.firstNonNull(endDate, LocalDate.now().plusDays(1).plusMonths(1));
@@ -47,7 +50,7 @@ public class ReservationServiceImpl implements ReservationService {
         }
 
         // 2. Find reserved dates that are within date range
-        ConcurrentHashMap<LocalDate, Boolean> busyDates = retrieveReservedDates(startDate, endDate);
+        Map<LocalDate, Boolean> busyDates = retrieveReservedDates(startDate, endDate);
 
         // 3. Compare reserved dates with date range to know available dates
         List<LocalDate> availableDates = Collections.synchronizedList(new ArrayList<>());
@@ -73,14 +76,14 @@ public class ReservationServiceImpl implements ReservationService {
         return Optional.ofNullable(reservationEntityBoundMapper.map(reservationRepository.findActiveReservationByExternalIdentifier(id)));
     }
 
-    @Transactional
+    @Transactional( propagation = Propagation.REQUIRES_NEW, isolation = Isolation.READ_COMMITTED)
     public synchronized String createReservation(ReservationRequest reservationRequest) {
         // 1. Validate date range for reservation
         validateDatesForReservation(reservationRequest.getCheckinDate(), reservationRequest.getCheckoutDate());
 
         //2. Create reservation entity
         ReservationEntity reservationEntity = populateReservationEntity(reservationRequest);
-        reservationRepository.saveAndFlush(reservationEntity).getExternalIdentifier();
+        reservationRepository.saveAndFlush(reservationEntity);
 
         logger.debug(new StringBuilder().append("Successfully created reservation: ").append(reservationEntity).toString());
         return reservationEntity.getExternalIdentifier();
@@ -124,8 +127,8 @@ public class ReservationServiceImpl implements ReservationService {
         reservationRepository.saveAndFlush(existingReservation);
     }
 
-    private boolean isSlotAvailable(LocalDate startDate, LocalDate endDate) {
-        return reservationRepository.findReservationsForGivenPeriod(startDate, endDate).isEmpty();
+    private synchronized boolean isSlotAvailableForNewReservation(LocalDate startDate, LocalDate endDate) {
+       return reservationRepository.findReservationsForGivenPeriodForCreation(startDate, endDate).isEmpty();
     }
 
     private ReservationEntity populateReservationEntity(ReservationRequest reservation) {
@@ -151,8 +154,8 @@ public class ReservationServiceImpl implements ReservationService {
         existingReservation.setCheckoutDate(ObjectUtils.firstNonNull(reservationRequested.getCheckoutDate(), existingReservation.getCheckoutDate()));
     }
 
-    private ConcurrentHashMap<LocalDate, Boolean> retrieveReservedDates(LocalDate startDate, LocalDate endDate) {
-        ConcurrentHashMap<LocalDate, Boolean> reservedDates = new ConcurrentHashMap();
+    private Map<LocalDate, Boolean> retrieveReservedDates(LocalDate startDate, LocalDate endDate) {
+        Map<LocalDate, Boolean> reservedDates = new ConcurrentHashMap();
         List<ReservationEntity> reservationsList = reservationRepository.findReservationsForGivenPeriod(startDate, endDate);
 
         reservationsList.forEach(reservation -> {
@@ -167,14 +170,15 @@ public class ReservationServiceImpl implements ReservationService {
         return reservedDates;
     }
 
-    public void validateDatesForReservation(LocalDate newCheckinDate, LocalDate newCheckoutDate) {
+    @Transactional(propagation = Propagation.REQUIRED )
+    public synchronized void validateDatesForReservation(LocalDate newCheckinDate, LocalDate newCheckoutDate) {
         // 1. Check if dates are valid and respect maximum duration.
         if (!isDateRangeValidForReservation(newCheckinDate, newCheckoutDate)) {
             throw new InvalidParameterException("The date range entered is incorrect.");
         }
 
         // 2. Check if dates are available
-        if (!isSlotAvailable(newCheckinDate, newCheckoutDate)) {
+        if (!isSlotAvailableForNewReservation(newCheckinDate, newCheckoutDate)) {
             throw new NoAvailabilityException("There are no availabilities for the dates provided.");
         }
     }
