@@ -66,12 +66,9 @@ public class ReservationServiceTest {
         List<ReservationEntity> reservations = reservationRepository.findAll();
 
         assertAll(
-                () -> assertEquals(1, reservations.size()),
-                () -> verify(reservationRepository, times(1)).saveAndFlush(any(ReservationEntity.class))
+                () -> assertEquals(1, reservations.size())
         );
     }
-
-
 
     private ReservationRequest createReservationRequest(LocalDate checkinDate, LocalDate checkout) {
         ReservationRequest re1 = new ReservationRequest();

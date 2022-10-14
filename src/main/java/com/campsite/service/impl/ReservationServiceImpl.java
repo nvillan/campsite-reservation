@@ -76,7 +76,7 @@ public class ReservationServiceImpl implements ReservationService {
         return Optional.ofNullable(reservationEntityBoundMapper.map(reservationRepository.findActiveReservationByExternalIdentifier(id)));
     }
 
-    @Transactional( propagation = Propagation.REQUIRES_NEW, isolation = Isolation.READ_COMMITTED)
+    @Transactional(propagation = Propagation.REQUIRES_NEW, rollbackFor = {NoAvailabilityException.class, InvalidParameterException.class}, isolation = Isolation.SERIALIZABLE)
     public synchronized String createReservation(ReservationRequest reservationRequest) {
         // 1. Validate date range for reservation
         validateDatesForReservation(reservationRequest.getCheckinDate(), reservationRequest.getCheckoutDate());
@@ -127,7 +127,7 @@ public class ReservationServiceImpl implements ReservationService {
         reservationRepository.saveAndFlush(existingReservation);
     }
 
-    private synchronized boolean isSlotAvailableForNewReservation(LocalDate startDate, LocalDate endDate) {
+    public synchronized boolean isSlotAvailableForNewReservation(LocalDate startDate, LocalDate endDate) {
        return reservationRepository.findReservationsForGivenPeriodForCreation(startDate, endDate).isEmpty();
     }
 
@@ -169,9 +169,7 @@ public class ReservationServiceImpl implements ReservationService {
         });
         return reservedDates;
     }
-
-    @Transactional(propagation = Propagation.REQUIRED )
-    public synchronized void validateDatesForReservation(LocalDate newCheckinDate, LocalDate newCheckoutDate) {
+    private synchronized void validateDatesForReservation(LocalDate newCheckinDate, LocalDate newCheckoutDate) {
         // 1. Check if dates are valid and respect maximum duration.
         if (!isDateRangeValidForReservation(newCheckinDate, newCheckoutDate)) {
             throw new InvalidParameterException("The date range entered is incorrect.");

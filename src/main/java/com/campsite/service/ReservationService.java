@@ -21,4 +21,6 @@ public interface ReservationService {
     Reservation updateReservation(String id, ReservationRequest reservationRequested);
 
     void cancelReservation(String id);
+
+    boolean isSlotAvailableForNewReservation(LocalDate startDate, LocalDate endDate);
 }
